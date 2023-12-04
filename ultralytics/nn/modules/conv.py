@@ -7,10 +7,42 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-__all__ = ('Conv', 'Conv2', 'LightConv', 'DWConv', 'DWConvTranspose2d', 'ConvTranspose', 'Focus', 'GhostConv',
+__all__ = ('ResnetStart', 'ResnetConv' , Conv', 'Conv2', 'LightConv', 'DWConv', 'DWConvTranspose2d', 'ConvTranspose', 'Focus', 'GhostConv',
            'ChannelAttention', 'SpatialAttention', 'CBAM', 'Concat', 'RepConv')
 
+class ResnetStart(nn.Module):
+    def __init__(self, in_channels = 3, out_channels = 64 , stride=2):
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=7, stride=2, padding=3)
+        self.batch_norm1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU()
+        self.max_pool = nn.MaxPool2d(kernel_size = 3, stride=2, padding=1)
 
+    def forward(self, x):
+        x = self.relu(self.batch_norm1(self.conv1(x)))
+        x = self.max_pool(x)
+        return x 
+
+class ResnetConv(nn.Module):
+    def __init__(self, in_channels, out_channels , stride=1, e = 4):
+        
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
+        self.batch_norm1 = nn.BatchNorm2d(out_channels)
+        
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+        self.batch_norm2 = nn.BatchNorm2d(out_channels)
+        
+        self.conv3 = nn.Conv2d(out_channels, out_channels*self.expansion, kernel_size=1, stride=1, padding=0)
+        self.batch_norm3 = nn.BatchNorm2d(out_channels*self.expansion)
+
+        self.relu = nn.ReLU()
+
+        def forward(self, x):
+            x = self.relu(self.batch_norm1(self.conv1(x)))
+            x = self.relu(self.batch_norm2(self.conv2(x)))
+            x = self.conv3(x)
+            x = self.batch_norm3(x)
+            return x
+                   
 def autopad(k, p=None, d=1):  # kernel, padding, dilation
     """Pad to 'same' shape outputs."""
     if d > 1:
